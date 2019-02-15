@@ -4,10 +4,12 @@
 # Copyright (C) 2017 Google Inc.
 # SPDX-License-Identifier: Apache-2.0
 
+import sys
 import argparse
 import json
 import os.path
 import pathlib
+import importlib
 
 import google.oauth2.credentials
 
@@ -15,7 +17,7 @@ from google.assistant.library import Assistant
 from google.assistant.library.file_helpers import existing_file
 from google.assistant.library.device_helpers import register_device
 
-from handler import process_event
+from handler import Handler
 
 WARNING_NOT_REGISTERED = """
     This device is not registered. This means you will not be able to use
@@ -32,6 +34,7 @@ def main():
     parser.add_argument('--nickname', type=str, metavar='NICKNAME', required=False, help='the nickname used to register this device')
     parser.add_argument('--device-config', type=str, metavar='DEVICE_CONFIG_FILE', default=os.path.join(os.path.expanduser('~/.config'), 'gassistant', 'device.json'), help='path to store and read device configuration')
     parser.add_argument('--credentials', type=existing_file, metavar='OAUTH2_CREDENTIALS_FILE', default=os.path.join(os.path.expanduser('~/.config'), 'gassistant', 'credentials.json'), help='path to store and read OAuth2 credentials')
+    parser.add_argument('--plugins', nargs='+', type=str, metavar='PLUGINS', default=[], help='plugin to be loaded')
 
     args = parser.parse_args()
     with open(args.credentials, 'r') as f:
@@ -60,7 +63,13 @@ def main():
     project_id = args.project_id or project_id
 
     with Assistant(credentials, device_model_id) as assistant:
-        events = assistant.start()
+        handler = Handler(assistant.start())
+        print(args)
+        for plugin in args.plugins:
+            try:
+                handler.add_plugin(importlib.import_module("plugins." + plugin).getInstance())
+            except ImportError:
+                print("Can not load plugin {plugin}".format(plugin=plugin), file=sys.stderr)
 
         device_id = assistant.device_id
         print('Device Model ID:', device_model_id)
@@ -80,8 +89,7 @@ def main():
             else:
                 print(WARNING_NOT_REGISTERED)
 
-        for event in events:
-            process_event(event)
+        handler.start()
 
 if __name__ == '__main__':
     main()

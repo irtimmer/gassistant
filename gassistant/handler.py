@@ -4,5 +4,19 @@
 
 from google.assistant.library.event import EventType
 
-def process_event(event):
-    print(event)
+class Handler:
+
+    def __init__(self, queue):
+	 self._queue = queue
+        self._plugins = []
+
+    def add_plugin(self, plugin):
+        self._plugins.append(plugin)
+
+    def start(self):
+        for event in self._queue:
+            self._process_event(event);
+
+    def _process_event(self, event):
+        for plugin in self._plugins:
+            plugin.process_event(event)
