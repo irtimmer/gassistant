@@ -6,5 +6,5 @@ class Debug:
     def process_event(self, event):
         print(event)
 
-def getInstance():
+def getInstance(_):
     return Debug()

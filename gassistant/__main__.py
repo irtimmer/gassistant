@@ -63,11 +63,11 @@ def main():
     project_id = args.project_id or project_id
 
     with Assistant(credentials, device_model_id) as assistant:
-        handler = Handler(assistant.start())
+        handler = Handler(assistant, assistant.start())
         print(args)
         for plugin in args.plugins:
             try:
-                handler.add_plugin(importlib.import_module("plugins." + plugin).getInstance())
+                handler.add_plugin(importlib.import_module("plugins." + plugin).getInstance(handler))
             except ImportError:
                 print("Can not load plugin {plugin}".format(plugin=plugin), file=sys.stderr)
 
